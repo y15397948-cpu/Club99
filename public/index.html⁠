@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Club99 - Game</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; background: #111; color: #fff; text-align: center; padding: 20px; }
+    .card { background: #222; padding: 20px; border-radius: 10px; margin: 10px auto; max-width: 400px; }
+    button { padding: 10px 20px; margin: 5px; border: none; font-weight: bold; cursor: pointer; border-radius: 5px; }
+    .green { background: #28a745; color: white; }
+    .red { background: #dc3545; color: white; }
+    .violet { background: #6f42c1; color: white; }
+  </style>
+</head>
+<body>
+  <h1>Club99 Game</h1>
+  <div class="card">
+    <h3 id="user">Logging in...</h3>
+    <h2>Balance: PKR <span id="balance">0</span></h2>
+  </div>
+
+  <div class="card">
+    <h3>Time Left: <span id="timer">60</span>s</h3>
+    <p>Round ID: <span id="round">--</span></p>
+    <div>
+      <button class="green" onclick="placeBet('GREEN')">GREEN (x2)</button>
+      <button class="violet" onclick="placeBet('VIOLET')">VIOLET (x4.5)</button>
+      <button class="red" onclick="placeBet('RED')">RED (x2)</button>
+    </div>
+  </div>
+
+  <script>
+    const socket = io();
+    let userId = localStorage.getItem('club99_user');
+
+    if (!userId) {
+      const name = prompt("Enter your username:") || "User" + Math.floor(Math.random()*1000);
+      fetch('/api/user/register', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ username: name })
+      }).then(res => res.json()).then(data => {
+        localStorage.setItem('club99_user', data._id);
+        location.reload();
+      });
+    }
+
+    socket.on('timer_tick', data => {
+      document.getElementById('timer').innerText = data.timeLeft;
+      document.getElementById('round').innerText = data.roundId;
+    });
+
+    socket.on('round_result', data => {
+      alert(`Round Ended! Number: ${data.winningNumber}, Color: ${data.winningColor}`);
+    });
+
+    function placeBet(selection) {
+      const amount = prompt("Enter bet amount:", "100");
+      if (amount) {
+        socket.emit('place_bet', { userId, selection, amount: Number(amount) });
+      }
+    }
+
+    socket.on('bet_success', data => {
+      document.getElementById('balance').innerText = data.newBalance;
+      alert("Bet placed successfully!");
+    });
+
+    socket.on('bet_error', msg => alert(msg));
+  </script>
+</body>
+</html>
