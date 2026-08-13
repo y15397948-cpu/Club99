@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Club99 - Admin</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px; }
+    .card { background: white; padding: 15px; margin-bottom: 10px; border-radius: 5px; }
+    button { background: #28a745; color: white; border: none; padding: 8px 15px; font-weight: bold; border-radius: 4px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>Club99 Admin Dashboard</h1>
+  <div id="stats" class="card">Loading...</div>
+  <h2>Pending Deposits</h2>
+  <div id="deposits"></div>
+
+  <script>
+    async function loadDashboard() {
+      const res = await fetch('/api/admin/dashboard');
+      const data = await res.json();
+      
+      document.getElementById('stats').innerHTML = `
+        <p>Total Users: ${data.totalUsers}</p>
+        <p>Total Approved Deposits: PKR ${data.totalDepositAmount}</p>
+      `;
+
+      const depDiv = document.getElementById('deposits');
+      depDiv.innerHTML = '';
+      if (data.pendingDeposits.length === 0) {
+        depDiv.innerHTML = '<p>No pending deposits.</p>';
+      } else {
+        data.pendingDeposits.forEach(d => {
+          depDiv.innerHTML += `
+            <div class="card">
+              <p><b>User:</b> ${d.username} | <b>Amount:</b> PKR ${d.amount}</p>
+              <p><b>TRX ID:</b> ${d.trxId} (${d.gateway})</p>
+              <button onclick="approve('${d._id}')">Approve Deposit</button>
+            </div>
+          `;
+        });
+      }
+    }
+
+    async function approve(depositId) {
+      await fetch('/api/admin/approve-deposit', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ depositId })
+      });
+      alert('Approved!');
+      loadDashboard();
+    }
+
+    loadDashboard();
+  </script>
+</body>
+</html>
